@@ -32,8 +32,23 @@ class CNF:
         self.clauses.append(clause)
 
     def isClause(self):
-        return len(self.clauses) == 0
-      
+        return len(self.clauses) == 1
+
+    # def getSeparator(self):
+    #     sep = set()
+    #     total
+    #     for clause in self.clauses:
+    #         clause_var = []
+    #         for atom in clause.atoms:
+    #             temp_list = []
+    #             for literal in atom.variables:
+    #                 if literal.isnumeric():
+    #                     continue;
+    #                 temp_list.append(literal[0]);
+
+                    
+
+
 class UCNF:
     def __init__(self):
         self.cnfs = []
@@ -42,23 +57,30 @@ class UCNF:
         self.cnfs.append(cnf)
 
 class Atom:
-    def __init__(self, parsed_atom):
+    def __init__(self, parsed_atom, table_dict):
         self.name = parsed_atom[0]
         self.variables = parsed_atom[1]
-
+        self.table_dict = table_dict
     def is_connected(self, atom2):
         return len(set(self.variables).intersection(set(atom2.variables))) > 0
-
+    def get_value(self):
+        t = self.table_dict[self.name]
+        query = []
+        for num in self.variables:
+            if not num.isnumeric():
+                return 0;
+            query.append(int(num))
+        return t.getProb(query)
 #Example /forall x1 /forall x2 R(x1) conjunnction S(x1,y1)
 #Input: [['R', ['x1']], ['S', ['x1', 'y1']]]
 
 class Clause:
-    def __init__(self, parsed_clause=[]):
+    def __init__(self, parsed_clause=[], table_dict={}):
         self.atoms = []
         self.variables = set()
         self.relations = set()
         for i in range(len(parsed_clause)):
-            self.atoms.append(Atom(parsed_clause[i]))
+            self.atoms.append(Atom(parsed_clause[i], table_dict))
         for a in self.atoms:
             self.variables.update(a.variables)
             self.relations.update(a.name)
@@ -113,15 +135,24 @@ def dfs(node, newClause, visited):
         dfs(neighbor, newClause, visited)
 
 def main():
+    """
+    Read database files and parse into a table dictionary with tableName, table key/value pair
+    """
+    filenames = ['table_file_3.txt', 'table_file_1.txt', 'table_file_2.txt']
+    table_dict = {}
+    for dbfile in filenames:
+        t = parser.pdbTable('./db/' + dbfile)
+        table_dict[t.table_name] = t
+
     parsed_query = parser.parse_query('./db/query.txt')
     cnf = CNF()
     for q in parsed_query:
-        cnf.addClause(Clause(q))   
+        cnf.addClause(Clause(q,table_dict))   
     cnf1 = CNF()
-    cnf1.addClause(Clause(parsed_query[0]))
+    cnf1.addClause(Clause(parsed_query[0], table_dict))
 
     res = cnf1.clauses[0].getUCNF()
-    print("hello")
+    print(cnf1.clauses[0].atoms[0].get_value())
     # cnf2 = CNF();
     # cnf2.addClause(Clause(parsed_query[1]))
     # print(cnf1.is_independent(cnf2))

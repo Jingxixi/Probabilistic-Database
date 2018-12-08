@@ -71,6 +71,28 @@ class Atom:
                 return 0;
             query.append(int(num))
         return t.getProb(query)
+
+    def is_independent(self, atom2):
+        atom1_var = set()
+        atom2_var = set()
+        for var in self.variables:
+            if not var.isnumeric():
+                atom1_var.add(var)
+
+        for var in atom2.variables:
+            if not var.isnumeric():
+                atom2_var.add(var)
+
+        if self.name == atom2.name and atom1_var != atom2_var:
+            return False
+        if self.name != atom2.name:
+            if atom1_var == atom2_var:
+                return True
+            if len(atom1_var.intersection(atom2_var)) !=0:
+                return False
+            else:
+                return True
+        return True
 #Example /forall x1 /forall x2 R(x1) conjunnction S(x1,y1)
 #Input: [['R', ['x1']], ['S', ['x1', 'y1']]]
 
@@ -151,11 +173,8 @@ def main():
     cnf1 = CNF()
     cnf1.addClause(Clause(parsed_query[0], table_dict))
 
-    res = cnf1.clauses[0].getUCNF()
-    print(cnf1.clauses[0].atoms[0].get_value())
-    # cnf2 = CNF();
-    # cnf2.addClause(Clause(parsed_query[1]))
-    # print(cnf1.is_independent(cnf2))
+    print(cnf1.clauses[0].atoms[0].is_independent(cnf1.clauses[0].atoms[1]))
+
 
 
 if __name__ == "__main__":

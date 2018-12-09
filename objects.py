@@ -46,17 +46,28 @@ class CNF:
         for clause in CNF2.clauses:
             res.addClause(clause)
         return res
-    # def getSeparator(self):
-    #     sep = set()
-    #     total 
-    #     for clause in self.clauses:
-    #         clause_var = []
-    #         for atom in clause.atoms:
-    #             temp_list = []
-    #             for literal in atom.variables:
-    #                 if literal.isnumeric():
-    #                     continue;
-    #                 temp_list.append(literal[0]);
+
+    def get_separator(self):
+        sep_var = ''
+        for clause in self.clauses:
+            for atom in clause.atoms:
+                if len(atom.variables) == 1 and not atom.variables[0].isnumeric():
+                    var = atom.variables[0]
+                    sep_var = var[0]
+                    break
+        if sep_var == '':
+            return None
+
+        for clause in self.clauses:
+            for atom in clause.atoms:
+                found = False
+                for var in atom.variables:
+                    if var[0] == sep_var:
+                        found = True
+                        break
+                if not found:
+                    return None
+        return sep_var
 
                     
 
@@ -189,14 +200,14 @@ def main():
     cnf = CNF()
     for q in parsed_query:
         cnf.addClause(Clause(q,table_dict))   
-    cnf1 = CNF()
-    cnf1.addClause(Clause(parsed_query[0], table_dict))
+    # cnf1 = CNF()
+    # cnf1.addClause(Clause(parsed_query[0], table_dict))
 
-    cnf2 = CNF()
-    cnf2.addClause(Clause(parsed_query[1], table_dict))
+    # cnf2 = CNF()
+    # cnf2.addClause(Clause(parsed_query[1], table_dict))
 
-    print(cnf1.is_independent(cnf2))
-
+    # print(cnf1.is_independent(cnf2))
+    print(cnf.get_separator())
 
 
 if __name__ == "__main__":

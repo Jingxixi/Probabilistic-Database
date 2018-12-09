@@ -83,6 +83,7 @@ class Atom:
     def __init__(self, parsed_atom, table_dict):
         self.name = parsed_atom[0]
         self.variables = parsed_atom[1]
+        self.negation = parsed_atom[2]
         self.table_dict = table_dict
     def is_connected(self, atom2):
         return len(set(self.variables).intersection(set(atom2.variables))) > 0
@@ -91,9 +92,12 @@ class Atom:
         query = []
         for num in self.variables:
             if not num.isnumeric():
-                return 0;
+                return 0
             query.append(int(num))
-        return t.getProb(query)
+        if (self.negation):
+            return (1.0 - t.getProb(query))
+        else:
+            return t.getProb(query)
 
     def is_independent(self, atom2):
         atom1_var = set()

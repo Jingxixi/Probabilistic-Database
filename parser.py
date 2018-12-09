@@ -7,15 +7,20 @@ class pdbTable:
         f = open(file_addr,'r')
         self.table_name = f.read(1)
         self.vals = self.df.values
+        w,h = self.vals.shape
+        self.variable_length = h-1
         
     def getProb(self,var_list):
+        if (self.variable_length != len(var_list)):
+            print("dimension error")
+            return 0
         index_array= np.empty((0))
         for i in range(len(var_list)):
-            a = np.where(self.vals[:,i]==var_list[i])
+            a = np.argwhere(self.vals[:,i]==var_list[i]).flatten()
             if len(index_array)==0:
                 index_array = a
             else:
-                index_array = np.intersect1d(a,index_array)
+                index_array = np.intersect1d(a,index_array).flatten()
         if (len(index_array) == 0):
             return 0
         else:

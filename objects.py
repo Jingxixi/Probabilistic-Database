@@ -65,7 +65,7 @@ class CNF:
             new_clause = Clause()
             new_clause.relations = copy.deepcopy(clause.relations)
             new_clause.variables = copy.deepcopy(clause.variables)
-            for atom in new_clause.atoms:
+            for atom in clause.atoms:
                 new_atom = Atom()
                 new_atom.table_dict = atom.table_dict
                 new_atom.variables = copy.deepcopy(atom.variables)

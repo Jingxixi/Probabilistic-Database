@@ -138,6 +138,13 @@ class Clause:
         return True
 
     def getUCNF(self):
+        ucnf = UCNF()
+        if len(self.atoms) == 1:
+            cnf = CNF()
+            cnf.addClause(self)
+            ucnf.add_cnf(cnf)
+            return ucnf
+
         graph = {}
         for i in range(len(self.atoms)):
             atom1 = self.atoms[i]
@@ -156,7 +163,6 @@ class Clause:
                 graph[atom2].addNeighbor(graph[atom1])
 
         visited = set()
-        ucnf = UCNF()
         for key in graph:
             node = graph[key]
             if node in visited:
@@ -194,9 +200,11 @@ def main():
     cnf = CNF()
     for q in parsed_query:
         cnf.addClause(Clause(q,table_dict))   
-    # cnf1 = CNF()
-    # cnf1.addClause(Clause(parsed_query[0], table_dict))
+    cnf1 = CNF()
+    cnf1.addClause(Clause(parsed_query[0], table_dict))
 
+
+    var = cnf1.clauses[0].getUCNF()
     # cnf2 = CNF()
     # cnf2.addClause(Clause(parsed_query[1], table_dict))
 

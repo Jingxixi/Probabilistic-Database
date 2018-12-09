@@ -1,7 +1,7 @@
 #Example R(x1)
 #Input: ['R', ['x1']]
 import parser
-
+import copy
 class Node:
     def __init__(self, atom):
         self.atom = atom
@@ -59,8 +59,21 @@ class CNF:
             print("hello")
         return sep_var
 
-                    
-
+    def deep_cooy(self):
+        new_copy = CNF()
+        for clause in self.clauses:
+            new_clause = Clause()
+            new_clause.relations = copy.deepcopy(clause.relations)
+            new_clause.variables = copy.deepcopy(clause.variables)
+            for atom in new_clause.atoms:
+                new_atom = Atom()
+                new_atom.table_dict = atom.table_dict
+                new_atom.variables = copy.deepcopy(atom.variables)
+                new_atom.negation = atom.negation
+                new_atom.name = atom.name
+                new_clause.addAtom(new_atom)
+            new_copy.addClause(new_clause)
+        return new_copy
 
 class UCNF:
     def __init__(self):
@@ -70,7 +83,7 @@ class UCNF:
         self.cnfs.append(cnf)
 
 class Atom:
-    def __init__(self, parsed_atom, table_dict):
+    def __init__(self, parsed_atom="", table_dict=None):
         self.name = parsed_atom[0]
         self.variables = parsed_atom[1]
         self.negation = parsed_atom[2]
@@ -222,7 +235,6 @@ def main():
     # cnf2.addClause(Clause(parsed_query[1], table_dict))
 
     # print(cnf1.is_independent(cnf2))
-
 
 if __name__ == "__main__":
     main()

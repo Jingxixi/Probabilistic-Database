@@ -19,19 +19,6 @@ class CNF:
                 if not clause1.is_independent(clause2):
                     return False
         return True
-        # dict_1_rels = set()
-        # dict_1_vars = set()
-        # dict_2_rels = set()
-        # dict_2_vars = set()
-        # for clause in self.clauses:
-        #     dict_1_rels.update(clause.relations)
-        #     dict_1_vars.update(clause.variables)
-
-        # for clause in cnf2.clauses:
-        #     dict_2_rels.update(clause.relations)
-        #     dict_2_vars.update(clause.variables)
-
-        # return  len(dict_1_rels.intersection(dict_2_rels)) == 0 and len(dict_1_vars.intersection(dict_2_vars)) == 0
 
     def addClause(self, clause):
         self.clauses.append(clause)
@@ -86,7 +73,17 @@ class Atom:
         self.negation = parsed_atom[2]
         self.table_dict = table_dict
     def is_connected(self, atom2):
-        return len(set(self.variables).intersection(set(atom2.variables))) > 0
+        atom1_set = set()
+        for var in self.variables:
+            if not var.isnumeric():
+                atom1_set.add(var)
+
+        atom2_set = set()
+        for var in atom2.variables:
+            if not var.isnumeric():
+                atom2_set.add(var)
+
+        return len(atom1_set.intersection(atom2_set)) > 0
     def get_value(self):
         t = self.table_dict[self.name]
         query = []
@@ -94,7 +91,7 @@ class Atom:
             if not num.isnumeric():
                 return 0
             query.append(int(num))
-        if (self.negation):
+        if not self.negation:
             return (1.0 - t.getProb(query))
         else:
             return t.getProb(query)
@@ -151,6 +148,13 @@ class Clause:
         return True
 
     def getUCNF(self):
+        ucnf = UCNF()
+        if len(self.atoms) == 1:
+            cnf = CNF()
+            cnf.addClause(self)
+            ucnf.add_cnf(cnf)
+            return ucnf
+
         graph = {}
         for i in range(len(self.atoms)):
             atom1 = self.atoms[i]
@@ -169,13 +173,15 @@ class Clause:
                 graph[atom2].addNeighbor(graph[atom1])
 
         visited = set()
-        ucnf = UCNF()
         for key in graph:
             node = graph[key]
             if node in visited:
                 continue;
             newClause = Clause()
             dfs(node, newClause, visited)
+            for atom in newClause.atoms:
+                newClause.variables.update(atom.variables)
+                newClause.relations.add(atom.name)
             cnf = CNF()
             cnf.addClause(newClause)
             ucnf.add_cnf(cnf)
@@ -204,9 +210,11 @@ def main():
     cnf = CNF()
     for q in parsed_query:
         cnf.addClause(Clause(q,table_dict))   
-    # cnf1 = CNF()
-    # cnf1.addClause(Clause(parsed_query[0], table_dict))
+    cnf1 = CNF()
+    cnf1.addClause(Clause(parsed_query[0], table_dict))
 
+
+    var = cnf1.clauses[0].getUCNF()
     # cnf2 = CNF()
     # cnf2.addClause(Clause(parsed_query[1], table_dict))
 

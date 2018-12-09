@@ -14,19 +14,24 @@ class CNF:
         self.clauses = []
 
     def is_independent(self, cnf2):
-        dict_1_rels = set()
-        dict_1_vars = set()
-        dict_2_rels = set()
-        dict_2_vars = set()
-        for clause in self.clauses:
-            dict_1_rels.update(clause.relations)
-            dict_1_vars.update(clause.variables)
+        for clause1 in self.clauses:
+            for clause2 in cnf2.clauses:
+                if not clause1.is_independent(clause2):
+                    return False
+        return True
+        # dict_1_rels = set()
+        # dict_1_vars = set()
+        # dict_2_rels = set()
+        # dict_2_vars = set()
+        # for clause in self.clauses:
+        #     dict_1_rels.update(clause.relations)
+        #     dict_1_vars.update(clause.variables)
 
-        for clause in cnf2.clauses:
-            dict_2_rels.update(clause.relations)
-            dict_2_vars.update(clause.variables)
+        # for clause in cnf2.clauses:
+        #     dict_2_rels.update(clause.relations)
+        #     dict_2_vars.update(clause.variables)
 
-        return  len(dict_1_rels.intersection(dict_2_rels)) == 0 and len(dict_1_vars.intersection(dict_2_vars)) == 0
+        # return  len(dict_1_rels.intersection(dict_2_rels)) == 0 and len(dict_1_vars.intersection(dict_2_vars)) == 0
 
     def addClause(self, clause):
         self.clauses.append(clause)
@@ -34,9 +39,16 @@ class CNF:
     def isClause(self):
         return len(self.clauses) == 1
 
+    def mergeCNF(self, CNF2):
+        res = CNF()
+        for clause in self.clauses:
+            res.addClause(clause)
+        for clause in CNF2.clauses:
+            res.addClause(clause)
+        return res
     # def getSeparator(self):
     #     sep = set()
-    #     total
+    #     total 
     #     for clause in self.clauses:
     #         clause_var = []
     #         for atom in clause.atoms:
@@ -116,6 +128,13 @@ class Clause:
             print("Table name is ", a.name, " and variables contain",a.variables)
         print("This clause has universal quatifier for variable:",self.variables)
 
+    def is_independent(self, clause2):
+        for atom1 in self.atoms:
+            for atom2 in clause2.atoms:
+                if not atom1.is_independent(atom2):
+                    return False
+        return True
+
     def getUCNF(self):
         graph = {}
         for i in range(len(self.atoms)):
@@ -173,7 +192,10 @@ def main():
     cnf1 = CNF()
     cnf1.addClause(Clause(parsed_query[0], table_dict))
 
-    print(cnf1.clauses[0].atoms[0].is_independent(cnf1.clauses[0].atoms[1]))
+    cnf2 = CNF()
+    cnf2.addClause(Clause(parsed_query[1], table_dict))
+
+    print(cnf1.is_independent(cnf2))
 
 
 

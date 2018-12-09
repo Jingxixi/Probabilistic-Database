@@ -73,7 +73,17 @@ class Atom:
         self.negation = parsed_atom[2]
         self.table_dict = table_dict
     def is_connected(self, atom2):
-        return len(set(self.variables).intersection(set(atom2.variables))) > 0
+        atom1_set = set()
+        for var in self.variables:
+            if not var.isnumeric():
+                atom1_set.add(var)
+
+        atom2_set = set()
+        for var in atom2.variables:
+            if not var.isnumeric():
+                atom2_set.add(var)
+
+        return len(atom1_set.intersection(atom2_set)) > 0
     def get_value(self):
         t = self.table_dict[self.name]
         query = []

@@ -19,19 +19,6 @@ class CNF:
                 if not clause1.is_independent(clause2):
                     return False
         return True
-        # dict_1_rels = set()
-        # dict_1_vars = set()
-        # dict_2_rels = set()
-        # dict_2_vars = set()
-        # for clause in self.clauses:
-        #     dict_1_rels.update(clause.relations)
-        #     dict_1_vars.update(clause.variables)
-
-        # for clause in cnf2.clauses:
-        #     dict_2_rels.update(clause.relations)
-        #     dict_2_vars.update(clause.variables)
-
-        # return  len(dict_1_rels.intersection(dict_2_rels)) == 0 and len(dict_1_vars.intersection(dict_2_vars)) == 0
 
     def addClause(self, clause):
         self.clauses.append(clause)
@@ -94,7 +81,7 @@ class Atom:
             if not num.isnumeric():
                 return 0
             query.append(int(num))
-        if (self.negation):
+        if not self.negation:
             return (1.0 - t.getProb(query))
         else:
             return t.getProb(query)
@@ -176,6 +163,9 @@ class Clause:
                 continue;
             newClause = Clause()
             dfs(node, newClause, visited)
+            for atom in newClause.atoms:
+                newClause.variables.update(atom.variables)
+                newClause.relations.add(atom.name)
             cnf = CNF()
             cnf.addClause(newClause)
             ucnf.add_cnf(cnf)

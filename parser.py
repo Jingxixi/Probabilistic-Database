@@ -37,20 +37,25 @@ def parse_query_to_string(query_addr):
 def parse_cq(q_str):
     i = 0
     #Format: List
-    #[ [Table name1,[List of variables]], 
-    #  [Table name2,[List of variables]] ]
+    #[ [Table name1,[List of variables],bool], 
+    #  [Table name2,[List of variables],bool] ]
     #
     L = []
     table_list=[]
     variables=[]
-    var=''
+    var=''	
+    negation = False
     while(i<len(q_str)):
-        if q_str[i].isupper():
-            if (i!= 0):
+        if (q_str[i] == '~'):
+            negation = True
+        elif (q_str[i].isupper()):
+            if (i!= 0 and i!=1):
                 table_list.append(variables)
+                table_list.append(negation)
                 L.append(table_list)
                 variables=[]
                 table_list=[]
+                negation = False
             table_list.append(q_str[i])
         else:
             if((q_str[i] == ',' or q_str[i] == ')') and var):
@@ -58,6 +63,7 @@ def parse_cq(q_str):
                 var=''
                 if(i == len(q_str)-1):
                     table_list.append(variables)
+                    table_list.append(negation)
                     L.append(table_list)
             elif (q_str[i] not in "(),"):
                 var+=q_str[i]

@@ -83,10 +83,11 @@ class UCNF:
         self.cnfs.append(cnf)
 
 class Atom:
-    def __init__(self, parsed_atom="", table_dict=None):
-        self.name = parsed_atom[0]
-        self.variables = parsed_atom[1]
-        self.negation = parsed_atom[2]
+    def __init__(self, parsed_atom=[], table_dict=None):
+        if len(parsed_atom) == 3:
+            self.name = parsed_atom[0]
+            self.variables = parsed_atom[1]
+            self.negation = parsed_atom[2]
         self.table_dict = table_dict
     def is_connected(self, atom2):
         atom1_set = set()

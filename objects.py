@@ -54,6 +54,9 @@ class CNF:
                         break
                 if not found:
                     return None
+        for clause in self.clauses:
+            clause.variables = set(filter(lambda x: x[0] != sep_var, clause.variables))
+            print("hello")
         return sep_var
 
                     
@@ -213,13 +216,12 @@ def main():
     cnf1 = CNF()
     cnf1.addClause(Clause(parsed_query[0], table_dict))
 
-
-    var = cnf1.clauses[0].getUCNF()
-    # cnf2 = CNF()
+    print(cnf.get_separator())
+    # var = cnf1.clauses[0].getUCNF()
+    cnf2 = CNF()
     # cnf2.addClause(Clause(parsed_query[1], table_dict))
 
     # print(cnf1.is_independent(cnf2))
-    print(cnf.get_separator())
 
 
 if __name__ == "__main__":

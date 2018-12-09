@@ -1,28 +1,3 @@
-import objects
-
-def main():
-    """
-    Read database files and parse into a table dictionary with tableName, table key/value pair
-    """
-    filenames = ['table_file_3.txt', 'table_file_1.txt', 'table_file_2.txt']
-    table_dict = {}
-    for dbfile in filenames:
-        t = parser.pdbTable('./db/' + dbfile)
-        table_dict[t.table_name] = t
-
-    parsed_query = parser.parse_query('./db/query.txt')
-    cnf = CNF()
-    for q in parsed_query:
-        cnf.addClause(Clause(q, table_dict))
-    cnf1 = CNF()
-
-    cnf1.addClause(Clause(parsed_query[0], table_dict))
-
-    cnf2 = CNF()
-    cnf2.addClause(Clause(parsed_query[1], table_dict))
-
-    lifted_inference(cnf1)
-
 def ConverttoUCNF(cnf):
     if (cnf.isClause()):
         return cnf.clauses[0].getUCNF()

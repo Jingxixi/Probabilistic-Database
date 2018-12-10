@@ -36,6 +36,14 @@ class CNF:
 
     def get_separator(self):
         sep_var = ''
+        if self.isClause() and len(self.clauses[0].atoms) == 1:
+            atom = self.clauses[0].atoms[0]
+            for variable in atom.variables:
+                if not variable.isnumeric():
+                    sep_var = variable[0]
+                    self.clauses[0].variables.remove(variable)
+                    break
+            return sep_var
         for clause in self.clauses:
             for atom in clause.atoms:
                 if len(atom.variables) == 1 and not atom.variables[0].isnumeric():
@@ -56,7 +64,6 @@ class CNF:
                     return None
         for clause in self.clauses:
             clause.variables = set(filter(lambda x: x[0] != sep_var, clause.variables))
-            print("hello")
         return sep_var
 
     def deep_cooy(self):
@@ -230,7 +237,8 @@ def main():
     cnf1 = CNF()
     cnf1.addClause(Clause(parsed_query[0], table_dict))
 
-    print(cnf.get_separator())
+    print(cnf1.get_separator())
+    # print(cnf1.clauses[0].is_independent(cnf1.clauses[1]))
     # var = cnf1.clauses[0].getUCNF()
     cnf2 = CNF()
     # cnf2.addClause(Clause(parsed_query[1], table_dict))

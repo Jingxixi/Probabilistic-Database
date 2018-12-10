@@ -1,13 +1,17 @@
-#Example R(x1)
-#Input: ['R', ['x1']]
+# Example R(x1)
+# Input: ['R', ['x1']]
 import parser
 import copy
+
+
 class Node:
     def __init__(self, atom):
         self.atom = atom
         self.neighbors = []
+
     def addNeighbor(self, atom2):
         self.neighbors.append(atom2)
+
 
 class CNF:
     def __init__(self):
@@ -82,12 +86,14 @@ class CNF:
             new_copy.addClause(new_clause)
         return new_copy
 
+
 class UCNF:
     def __init__(self):
         self.cnfs = []
-    
+
     def add_cnf(self, cnf):
         self.cnfs.append(cnf)
+
 
 class Atom:
     def __init__(self, parsed_atom=[], table_dict=None):
@@ -96,6 +102,7 @@ class Atom:
             self.variables = parsed_atom[1]
             self.negation = parsed_atom[2]
         self.table_dict = table_dict
+
     def is_connected(self, atom2):
         atom1_set = set()
         for var in self.variables:
@@ -108,6 +115,7 @@ class Atom:
                 atom2_set.add(var)
 
         return len(atom1_set.intersection(atom2_set)) > 0
+
     def get_value(self):
         t = self.table_dict[self.name]
         query = []
@@ -136,13 +144,15 @@ class Atom:
         if self.name != atom2.name:
             if atom1_var == atom2_var:
                 return True
-            if len(atom1_var.intersection(atom2_var)) !=0:
+            if len(atom1_var.intersection(atom2_var)) != 0:
                 return False
             else:
                 return True
         return True
-#Example /forall x1 /forall x2 R(x1) conjunnction S(x1,y1)
-#Input: [['R', ['x1']], ['S', ['x1', 'y1']]]
+
+
+# Example /forall x1 /forall x2 R(x1) conjunnction S(x1,y1)
+# Input: [['R', ['x1']], ['S', ['x1', 'y1']]]
 
 class Clause:
     def __init__(self, parsed_clause=[], table_dict={}):
@@ -161,8 +171,8 @@ class Clause:
     def print(self):
         print("This Clause contains the following atoms:")
         for a in self.atoms:
-            print("Table name is ", a.name, " and variables contain",a.variables)
-        print("This clause has universal quatifier for variable:",self.variables)
+            print("Table name is ", a.name, " and variables contain", a.variables)
+        print("This clause has universal quatifier for variable:", self.variables)
 
     def is_independent(self, clause2):
         for atom1 in self.atoms:
@@ -182,14 +192,14 @@ class Clause:
         graph = {}
         for i in range(len(self.atoms)):
             atom1 = self.atoms[i]
-            for j in range(i+1, len(self.atoms)):
+            for j in range(i + 1, len(self.atoms)):
                 atom2 = self.atoms[j]
                 if atom1 not in graph:
                     graph[atom1] = Node(atom1)
                 if atom2 not in graph:
                     graph[atom2] = Node(atom2)
-        # for atom1 in self.atoms:
-        #     for atom2 in self.atoms:
+                # for atom1 in self.atoms:
+                #     for atom2 in self.atoms:
                 if not atom1.is_connected(atom2):
                     continue
 
@@ -222,6 +232,7 @@ def dfs(node, newClause, visited):
     for neighbor in node.neighbors:
         dfs(neighbor, newClause, visited)
 
+
 def main():
     """
     Read database files and parse into a table dictionary with tableName, table key/value pair
@@ -235,7 +246,7 @@ def main():
     parsed_query = parser.parse_query('./db/query.txt')
     cnf = CNF()
     for q in parsed_query:
-        cnf.addClause(Clause(q,table_dict))   
+        cnf.addClause(Clause(q, table_dict))
     cnf1 = CNF()
     cnf1.addClause(Clause(parsed_query[0], table_dict))
     cnf1.clauses[0].variables = []
@@ -247,6 +258,112 @@ def main():
     # cnf2.addClause(Clause(parsed_query[1], table_dict))
 
     # print(cnf1.is_independent(cnf2))
+
+
+if __name__ == "__main__":
+    main()
+
+
+def ConverttoUCNF(cnf):
+    if (cnf.isClause()):
+        return cnf.clauses[0].getUCNF()
+    alpha = cnf.clauses[0]
+
+    gamma = CNF()
+    for i in cnf.clauses[1:]:
+        gamma.addClause(i)
+    ucnf = UCNF()
+
+    for i in alpha.getUCNF().cnfs:
+        for j in ConverttoUCNF(gamma).cnfs:
+            ucnf.add_cnf(i.mergeCNF(j))
+    return ucnf
+
+def get_val_domain(var, atom):
+    if (var == None): return []
+    for i in range(len(atom.variables)):
+        if (var in atom.variables[i]):
+            break
+    t = atom.table_dict[atom.name]
+    val_domain = list()
+    for j in t.vals:
+        val_domain.append(int(j[i]))
+    return list(set(val_domain))
+
+def grounding(var, val, cnf):
+    for clause in cnf.clauses:
+        for atom in clause.atoms:
+            for i in range(len(atom.variables)):
+                if (var in atom.variables[i]):
+                    atom.variables[i] = val
+    return
+
+
+def lifted_inference(cnf):
+    if (cnf.isClause()):
+        clause = cnf.clauses[0]
+        if len(clause.atoms) == 1:
+            if (len(clause.variables)) == 0:
+                prob = clause.atoms[0].get_value()
+                return prob
+    ucnf = ConverttoUCNF(cnf)
+    if (len(ucnf.cnfs) == 2):
+        if (ucnf.cnfs[0].is_independent(ucnf.cnfs[1])):
+            cnf1 = ucnf.cnfs[0].deep_cooy()
+            cnf2 = ucnf.cnfs[1].deep_cooy()
+            prob1 = lifted_inference(cnf1)
+            prob2 = lifted_inference(cnf2)
+            return 1 - (1 - prob1) * (1 - prob2)
+        else:
+            cnf1 = ucnf.cnfs[0].deep_cooy()
+            cnf2 = ucnf.cnfs[1].deep_cooy()
+            cnf12 = cnf1.mergeCNF(cnf2)
+
+            return lifted_inference(cnf1) + lifted_inference(cnf2) - lifted_inference(cnf12)
+    if (len(cnf.clauses) == 2):
+        if (cnf.clauses[0].is_independent(cnf.clauses[1])):
+            cnf1 = cnf()
+            cnf2 = cnf()
+            cnf1.addClause(cnf.clauses[0])
+            cnf2.addClause(cnf.clauses[1])
+            return lifted_inference(cnf1)*lifted_inference(cnf2)
+    var = cnf.get_separator()
+    if (var == "None"):
+        return 0
+    else:
+        val_domain = get_val_domain(var, cnf.clauses[0].atoms[0])
+        prob = 1
+
+        for i in val_domain:
+            cnf1 = cnf.deep_cooy()
+            grounding(var, str(i), cnf1)
+            prob = prob * lifted_inference(cnf1)
+        return prob
+
+
+def main():
+    """
+    Read database files and parse into a table dictionary with tableName, table key/value pair
+    """
+    filenames = ['table_file_3.txt', 'table_file_1.txt', 'table_file_2.txt']
+    table_dict = {}
+    for dbfile in filenames:
+        t = parser.pdbTable('./db/' + dbfile)
+        table_dict[t.table_name] = t
+
+    parsed_query = parser.parse_query('./db/query.txt')
+    cnf = CNF()
+    for q in parsed_query:
+        cnf.addClause(Clause(q, table_dict))
+    cnf1 = CNF()
+
+    cnf1.addClause(Clause(parsed_query[0], table_dict))
+
+    cnf2 = CNF()
+    cnf2.addClause(Clause(parsed_query[1], table_dict))
+
+
+    print(1 - lifted_inference(cnf1))
 
 if __name__ == "__main__":
     main()

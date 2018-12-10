@@ -200,11 +200,13 @@ class Clause:
         for key in graph:
             node = graph[key]
             if node in visited:
-                continue;
+                continue
             newClause = Clause()
             dfs(node, newClause, visited)
             for atom in newClause.atoms:
-                newClause.variables.update(atom.variables)
+                for item in atom.variables:
+                    if not item.isnumeric():
+                        newClause.variables.add(item)
                 newClause.relations.add(atom.name)
             cnf = CNF()
             cnf.addClause(newClause)
@@ -236,8 +238,9 @@ def main():
         cnf.addClause(Clause(q,table_dict))   
     cnf1 = CNF()
     cnf1.addClause(Clause(parsed_query[0], table_dict))
+    cnf1.clauses[0].variables = []
+    res = cnf1.clauses[0].getUCNF()
 
-    print(cnf1.get_separator())
     # print(cnf1.clauses[0].is_independent(cnf1.clauses[1]))
     # var = cnf1.clauses[0].getUCNF()
     cnf2 = CNF()

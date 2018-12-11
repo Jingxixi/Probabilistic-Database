@@ -71,7 +71,7 @@ class CNF:
             if len(new_list) == 0:
                 new_list.append(self.clauses[i])
             for j in range(len(new_list)):
-                if self.clauses[j].is_equal(self.clauses[i]):
+                if new_list[j].is_equal(self.clauses[i]):
                     found = True
                     break
             if not found:
@@ -111,7 +111,7 @@ class CNF:
             clause.variables = set(filter(lambda x: x[0] != sep_var, clause.variables))
         return sep_var
 
-    def deep_cooy(self):
+    def deep_copy(self):
         new_copy = CNF()
         for clause in self.clauses:
             new_clause = Clause()
@@ -164,8 +164,7 @@ class Atom:
             return False
         if len(self.variables) != len(atom2.variables):
             return False
-        self.variables.sort()
-        atom2.variables.sort()
+
         for i in range(len(self.variables)):
             if self.variables[i] != atom2.variables[i]:
                 return False
@@ -369,6 +368,10 @@ def grounding(var, val, cnf):
 
 
 def lifted_inference(cnf):
+    cnf.rewrite()
+    print("##################### new Recursive call")
+    # for clause in cnf.clauses:
+    #     clause.print()
     if (cnf.isClause()):
         clause = cnf.clauses[0]
         if len(clause.atoms) == 1:
@@ -424,7 +427,7 @@ def main():
     cnf = CNF()
     for q in parsed_query:
         cnf.addClause(Clause(q, table_dict))
-    res = cnf.rewrite()
+    # res = cnf.rewrite()
     print("hello")
     # cnf1 = CNF()
     # cnf1.addClause(Clause(parsed_query[0], table_dict))
@@ -434,7 +437,7 @@ def main():
     # a = cnf1.rewrite()
     # cnf2 = CNF()
     # cnf2.addClause(Clause(parsed_query[1], table_dict))
-    # print(1 - lifted_inference(cnf1))
+    print(1 - lifted_inference(cnf))
 
 if __name__ == "__main__":
     main()

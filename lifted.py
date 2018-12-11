@@ -2,7 +2,7 @@
 # Input: ['R', ['x1']]
 import parser
 import copy
-import objects
+from objects import CNF, Atom, Clause, UCNF
 
 
 def ConverttoUCNF(cnf):
@@ -204,15 +204,15 @@ def main():
     cnf = CNF()
     for q in parsed_query:
         cnf.addClause(Clause(q, table_dict))
-    cnf1 = CNF()
+    # cnf1 = CNF()
 
-    cnf1.addClause(Clause(parsed_query[0], table_dict))
+    # cnf1.addClause(Clause(parsed_query[0], table_dict))
 
-    cnf2 = CNF()
-    cnf2.addClause(Clause(parsed_query[1], table_dict))
+    # cnf2 = CNF()
+    # cnf2.addClause(Clause(parsed_query[1], table_dict))
 
 
-    print(1 - lifted_inference(cnf1))
+    print(1 - lifted_inference(cnf))
 
 if __name__ == "__main__":
     main()

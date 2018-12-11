@@ -38,27 +38,46 @@ class CNF:
             res.addClause(clause)
         return res
     def rewrite(self):
+        if len(self.clauses) == 0:
+            return
+        clause = self.clauses[0]
+        big_var = None
+        not_found = False
         for clause in self.clauses:
-            if len(clause.variables) == 0:
-                continue
-            big_var = None
-            found = True
             for variable in clause.variables:
                 if variable.isnumeric():
                     continue
                 if big_var  == None:
-                   big_var = variable[0]
-                   continue
-                if variable[0] != big_var:
-                    found = False
+                    big_var = variable[0]
+                if big_var != variable[0]:
+                    not_found = True
                     break
-            if found:
-                clause.variables = set([elem for elem in clause.variables if elem[0] != big_var])
-                clause.variables.add(big_var)
+            if not_found:
+                break
+        if not not_found:
+            for clause in self.clauses:
+                temp = set([elem for elem in clause.variables if elem[0] != big_var])
+                if temp != clause.variables:
+                    clause.variables = temp
+                    clause.variables.add(big_var)
                 for atom in clause.atoms:
                     for i in range(len(atom.variables)):
                         if atom.variables[i][0] == big_var:
-                            atom.variables[i] = big_var 
+                            atom.variables[i] = big_var
+        new_list = []
+        
+        for i in range(len(self.clauses)):
+            found = False
+            if len(new_list) == 0:
+                new_list.append(self.clauses[i])
+            for j in range(len(new_list)):
+                if self.clauses[j].is_equal(self.clauses[i]):
+                    found = True
+                    break
+            if not found:
+                new_list.append(self.clauses[i])
+
+        self.clauses = new_list
                     
     def get_separator(self):
         sep_var = ''
@@ -138,6 +157,20 @@ class Atom:
 
         return len(atom1_set.intersection(atom2_set)) > 0
 
+    def is_equal(self, atom2):
+        if self.name != atom2.name:
+            return False
+        if self.negation != atom2.negation:
+            return False
+        if len(self.variables) != len(atom2.variables):
+            return False
+        self.variables.sort()
+        atom2.variables.sort()
+        for i in range(len(self.variables)):
+            if self.variables[i] != atom2.variables[i]:
+                return False
+        return True
+
     def get_value(self):
         t = self.table_dict[self.name]
         query = []
@@ -201,6 +234,20 @@ class Clause:
             for atom2 in clause2.atoms:
                 if not atom1.is_independent(atom2):
                     return False
+        return True
+    def is_equal(self, clause2):
+        if self.variables != clause2.variables:
+            return False
+        if self.relations != clause2.relations:
+            return False
+        if len(self.atoms) != len(clause2.atoms):
+            return False
+
+        self.atoms.sort(key=lambda x: x.name)
+        clause2.atoms.sort(key=lambda x: x.name)
+        for i in range(len(self.atoms)):
+            if not self.atoms[i].is_equal(clause2.atoms[i]):
+                return False
         return True
 
     def getUCNF(self):
@@ -377,15 +424,17 @@ def main():
     cnf = CNF()
     for q in parsed_query:
         cnf.addClause(Clause(q, table_dict))
-    cnf1 = CNF()
-    cnf1.addClause(Clause(parsed_query[0], table_dict))
-    a1 = cnf.clauses[0].atoms[0]
-    a2 = cnf.clauses[0].atoms[1]
-    print(a1.is_independent(a2))
+    res = cnf.rewrite()
+    print("hello")
+    # cnf1 = CNF()
+    # cnf1.addClause(Clause(parsed_query[0], table_dict))
+    # a1 = cnf.clauses[0].atoms[0]
+    # a2 = cnf.clauses[0].atoms[1]
+    # print(a1.is_independent(a2))
     # a = cnf1.rewrite()
     # cnf2 = CNF()
     # cnf2.addClause(Clause(parsed_query[1], table_dict))
-    print(1 - lifted_inference(cnf1))
+    # print(1 - lifted_inference(cnf1))
 
 if __name__ == "__main__":
     main()

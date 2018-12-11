@@ -161,11 +161,11 @@ class Atom:
             if not var.isnumeric():
                 atom2_var.add(var)
 
-        if self.name == atom2.name and atom1_var != atom2_var:
+        if self.name == atom2.name:
             return False
         if self.name != atom2.name:
             if atom1_var == atom2_var:
-                return True
+                return False
             if len(atom1_var.intersection(atom2_var)) != 0:
                 return False
             else:
@@ -378,9 +378,11 @@ def main():
     for q in parsed_query:
         cnf.addClause(Clause(q, table_dict))
     cnf1 = CNF()
-
     cnf1.addClause(Clause(parsed_query[0], table_dict))
-    a = cnf1.rewrite()
+    a1 = cnf.clauses[0].atoms[0]
+    a2 = cnf.clauses[0].atoms[1]
+    print(a1.is_independent(a2))
+    # a = cnf1.rewrite()
     # cnf2 = CNF()
     # cnf2.addClause(Clause(parsed_query[1], table_dict))
     print(1 - lifted_inference(cnf1))

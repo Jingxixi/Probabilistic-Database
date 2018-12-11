@@ -2,6 +2,8 @@
 # Input: ['R', ['x1']]
 import parser
 import copy
+import multiprocessing
+import time
 
 
 class Node:
@@ -37,29 +39,7 @@ class CNF:
         for clause in CNF2.clauses:
             res.addClause(clause)
         return res
-    def rewrite(self):
-        for clause in self.clauses:
-            if len(clause.variables) == 0:
-                continue
-            big_var = None
-            found = True
-            for variable in clause.variables:
-                if variable.isnumeric():
-                    continue
-                if big_var  == None:
-                   big_var = variable[0]
-                   continue
-                if variable[0] != big_var:
-                    found = False
-                    break
-            if found:
-                clause.variables = set([elem for elem in clause.variables if elem[0] != big_var])
-                clause.variables.add(big_var)
-                for atom in clause.atoms:
-                    for i in range(len(atom.variables)):
-                        if atom.variables[i][0] == big_var:
-                            atom.variables[i] = big_var 
-                    
+
     def get_separator(self):
         sep_var = ''
         if self.isClause() and len(self.clauses[0].atoms) == 1:
@@ -254,38 +234,6 @@ def dfs(node, newClause, visited):
     for neighbor in node.neighbors:
         dfs(neighbor, newClause, visited)
 
-
-def main():
-    """
-    Read database files and parse into a table dictionary with tableName, table key/value pair
-    """
-    filenames = ['table_file_3.txt', 'table_file_1.txt', 'table_file_2.txt']
-    table_dict = {}
-    for dbfile in filenames:
-        t = parser.pdbTable('./db/' + dbfile)
-        table_dict[t.table_name] = t
-
-    parsed_query = parser.parse_query('./db/query.txt')
-    cnf = CNF()
-    for q in parsed_query:
-        cnf.addClause(Clause(q, table_dict))
-    cnf1 = CNF()
-    cnf1.addClause(Clause(parsed_query[0], table_dict))
-    cnf1.clauses[0].variables = []
-    res = cnf1.clauses[0].getUCNF()
-
-    # print(cnf1.clauses[0].is_independent(cnf1.clauses[1]))
-    # var = cnf1.clauses[0].getUCNF()
-    cnf2 = CNF()
-    # cnf2.addClause(Clause(parsed_query[1], table_dict))
-
-    # print(cnf1.is_independent(cnf2))
-
-
-if __name__ == "__main__":
-    main()
-
-
 def ConverttoUCNF(cnf):
     if (cnf.isClause()):
         return cnf.clauses[0].getUCNF()
@@ -319,9 +267,7 @@ def grounding(var, val, cnf):
                 if (var in atom.variables[i]):
                     atom.variables[i] = val
     return
-
-
-def lifted_inference(cnf):
+def lifted_inference_single(cnf):
     if (cnf.isClause()):
         clause = cnf.clauses[0]
         if len(clause.atoms) == 1:
@@ -333,22 +279,25 @@ def lifted_inference(cnf):
         if (ucnf.cnfs[0].is_independent(ucnf.cnfs[1])):
             cnf1 = ucnf.cnfs[0].deep_cooy()
             cnf2 = ucnf.cnfs[1].deep_cooy()
-            prob1 = lifted_inference(cnf1)
-            prob2 = lifted_inference(cnf2)
+            prob1 = lifted_inference_single(cnf1)
+            prob2 = lifted_inference_single(cnf2)
             return 1 - (1 - prob1) * (1 - prob2)
         else:
             cnf1 = ucnf.cnfs[0].deep_cooy()
             cnf2 = ucnf.cnfs[1].deep_cooy()
             cnf12 = cnf1.mergeCNF(cnf2)
 
-            return lifted_inference(cnf1) + lifted_inference(cnf2) - lifted_inference(cnf12)
+            return lifted_inference_single(cnf1) + lifted_inference_single(cnf2) - lifted_inference_single(cnf12)
+
+    
+
     if (len(cnf.clauses) == 2):
         if (cnf.clauses[0].is_independent(cnf.clauses[1])):
             cnf1 = cnf()
             cnf2 = cnf()
             cnf1.addClause(cnf.clauses[0])
             cnf2.addClause(cnf.clauses[1])
-            return lifted_inference(cnf1)*lifted_inference(cnf2)
+            return lifted_inference_single(cnf1)*lifted_inference_single(cnf2)
     var = cnf.get_separator()
     if (var == "None"):
         return 0
@@ -359,9 +308,88 @@ def lifted_inference(cnf):
         for i in val_domain:
             cnf1 = cnf.deep_cooy()
             grounding(var, str(i), cnf1)
-            prob = prob * lifted_inference(cnf1)
+            prob = prob * lifted_inference_single(cnf1)
         return prob
 
+def lifted_inference(cnf, level, shared_mem, pNum):
+    print('here')
+    if (cnf.isClause()):
+        clause = cnf.clauses[0]
+        if len(clause.atoms) == 1:
+            if (len(clause.variables)) == 0:
+                prob = clause.atoms[0].get_value()
+                shared_mem[str(level)+'/'+str(pNum)] = prob
+                return prob
+    ucnf = ConverttoUCNF(cnf)
+    if (len(ucnf.cnfs) == 2):
+        if (ucnf.cnfs[0].is_independent(ucnf.cnfs[1])):
+            cnf1 = ucnf.cnfs[0].deep_cooy()
+            cnf2 = ucnf.cnfs[1].deep_cooy()
+            p1 = multiprocessing.Process(target=lifted_inference, args=(cnf1,level+1, shared_mem, pNum+1))
+            p1.start()
+            p2 = multiprocessing.Process(target=lifted_inference, args=(cnf2,level+1, shared_mem, pNum+2))
+            p2.start()
+            p1.join()
+            p2.join()
+            prob1 = shared_mem[str(level+1)+'/'+str(pNum+1)]
+            prob2 = shared_mem[str(level+1)+'/'+str(pNum+2)]
+            res = 1 - (1 - prob1) * (1 - prob2)
+            shared_mem[str(level)+'/'+str(pNum)] = res
+            return res
+        else:
+            cnf1 = ucnf.cnfs[0].deep_cooy()
+            cnf2 = ucnf.cnfs[1].deep_cooy()
+            cnf12 = cnf1.mergeCNF(cnf2)
+            p1 = multiprocessing.Process(target=lifted_inference, args=(cnf1,level+1, shared_mem, pNum+1))
+            p1.start()
+            p2 = multiprocessing.Process(target=lifted_inference, args=(cnf2,level+1, shared_mem, pNum+2))
+            p2.start()
+            p12 = multiprocessing.Process(target=lifted_inference, args=(cnf12,level+1, shared_mem, pNum+3))
+            p12.start()
+            p1.join()
+            p2.join()
+            p12.join()
+            prob1 = shared_mem[str(level+1)+'/'+str(pNum+1)]
+            prob2 = shared_mem[str(level+1)+'/'+str(pNum+2)]
+            prob12 = shared_mem[str(level+1)+'/'+str(pNum+3)]
+            res = prob1 + prob2 - prob12
+            shared_mem[str(level)+'/'+ str(pNum)] = res
+            return res
+
+    
+
+    if (len(cnf.clauses) == 2):
+        if (cnf.clauses[0].is_independent(cnf.clauses[1])):
+            cnf1 = cnf()
+            cnf2 = cnf()
+            cnf1.addClause(cnf.clauses[0])
+            cnf2.addClause(cnf.clauses[1])
+            p1 = multiprocessing.Process(target=lifted_inference, args=(cnf1,level+1, shared_mem, pNum+1))
+            p1.start()
+            p2 = multiprocessing.Process(target=lifted_inference, args=(cnf2,level+1, shared_mem, pNum+2))
+            p2.start()
+            p1.join()
+            p2.join()
+            prob1 = shared_mem[str(level+1)+'/'+str(pNum+1)]
+            prob2 = shared_mem[str(level+1)+'/'+str(pNum+2)]
+            res = prob1*prob2
+            shared_mem[str(level)+'/'+ str(pNum)] = res
+            return res
+    var = cnf.get_separator()
+    if (var == "None"):
+        return 0
+    else:
+        val_domain = get_val_domain(var, cnf.clauses[0].atoms[0])
+        prob = 1
+        num = pNum
+        for i in val_domain:
+            cnf1 = cnf.deep_cooy()
+            grounding(var, str(i), cnf1)
+            num +=1
+            prob1 = lifted_inference_single(cnf1)
+            prob = prob * prob1
+        shared_mem[str(level)+'/'+ str(pNum)] = prob
+        return prob
 
 def main():
     """
@@ -377,13 +405,23 @@ def main():
     cnf = CNF()
     for q in parsed_query:
         cnf.addClause(Clause(q, table_dict))
-    cnf1 = CNF()
+    # cnf1 = CNF()
 
-    cnf1.addClause(Clause(parsed_query[0], table_dict))
-    a = cnf1.rewrite()
+    # cnf1.addClause(Clause(parsed_query[0], table_dict))
+
     # cnf2 = CNF()
     # cnf2.addClause(Clause(parsed_query[1], table_dict))
-    print(1 - lifted_inference(cnf1))
+    shared_mem = dict()
+    start = time.time()
+    res = lifted_inference_single(cnf)
 
+    end = time.time()
+    print(end - start)
+
+    print("Running multi-processing")
+    start = time.time()
+    res = lifted_inference(cnf,0,shared_mem , 1)
+    end = time.time()
+    print(end - start)
 if __name__ == "__main__":
     main()

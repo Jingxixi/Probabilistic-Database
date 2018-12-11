@@ -340,20 +340,20 @@ def main():
 
     # print(cnf1.clauses[0].is_independent(cnf1.clauses[1]))
     # var = cnf1.clauses[0].getUCNF()
-    #cnf2 = CNF()
+    cnf2 = CNF()
     #cnf1.addClause(Clause(parsed_query[1], table_dict))
 
-    #clause1 = Clause()
-    #clause2 = Clause()
+    clause1 = Clause()
+    clause2 = Clause()
 
-    #clause1.addAtom(cnf1.clauses[0].atoms[0])
-    #clause2.addAtom(cnf1.clauses[0].atoms[1])
+    clause1.addAtom(cnf1.clauses[0].atoms[0])
+    clause2.addAtom(cnf1.clauses[0].atoms[1])
 
-    #clause1.variables = set()
-    #clause2.variables = set()
+    clause1.variables = set()
+    clause2.variables = set()
 
-    #if (clause1.is_independent(clause2)):
-    #    print("independent")
+    if (clause1.is_independent(clause2)):
+        print("independent")
     #print(cnf1.is_independent(cnf2))
 
 

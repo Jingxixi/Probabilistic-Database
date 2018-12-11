@@ -25,18 +25,24 @@ class CNF:
         return True
 
     def addClause(self, clause):
-        self.clauses.append(clause)
+        new_clause = clause.deep_copy()
+        self.clauses.append(new_clause)
+        #self.clauses.append(clause)
 
     def isClause(self):
         return len(self.clauses) == 1
 
     def mergeCNF(self, CNF2):
         res = CNF()
-        for clause in self.clauses:
+        cnf1 = self.deep_copy()
+        cnf2 = CNF2.deep_copy()
+        for clause in cnf1.clauses: #self.clauses:
             res.addClause(clause)
-        for clause in CNF2.clauses:
+        for clause in cnf2.clauses: #CNF2.clauses:
             res.addClause(clause)
+
         return res
+
     def rewrite(self):
         if len(self.clauses) == 0:
             return
@@ -47,7 +53,7 @@ class CNF:
             for variable in clause.variables:
                 if variable.isnumeric():
                     continue
-                if big_var  == None:
+                if big_var == None:
                     big_var = variable[0]
                 if big_var != variable[0]:
                     not_found = True
@@ -65,7 +71,7 @@ class CNF:
                         if atom.variables[i][0] == big_var:
                             atom.variables[i] = big_var
         new_list = []
-        
+
         for i in range(len(self.clauses)):
             found = False
             if len(new_list) == 0:
@@ -78,7 +84,7 @@ class CNF:
                 new_list.append(self.clauses[i])
 
         self.clauses = new_list
-                    
+
     def get_separator(self):
         sep_var = ''
         if self.isClause() and len(self.clauses[0].atoms) == 1:
@@ -196,7 +202,7 @@ class Atom:
         if self.name == atom2.name:
             return False
         if self.name != atom2.name:
-            if atom1_var == atom2_var:
+            if atom1_var == atom2_var and len(atom1_var) != 0:
                 return False
             if len(atom1_var.intersection(atom2_var)) != 0:
                 return False
@@ -234,6 +240,7 @@ class Clause:
                 if not atom1.is_independent(atom2):
                     return False
         return True
+
     def is_equal(self, clause2):
         if self.variables != clause2.variables:
             return False
@@ -291,6 +298,18 @@ class Clause:
             ucnf.add_cnf(cnf)
         return ucnf
 
+    def deep_copy(self):
+        new_clause = Clause()
+        new_clause.relations = copy.deepcopy(self.relations)
+        new_clause.variables = copy.deepcopy(self.variables)
+        for atom in self.atoms:
+            new_atom = Atom()
+            new_atom.table_dict = atom.table_dict
+            new_atom.variables = copy.deepcopy(atom.variables)
+            new_atom.negation = atom.negation
+            new_atom.name = atom.name
+            new_clause.addAtom(new_atom)
+        return new_clause
 
 def dfs(node, newClause, visited):
     if node in visited:
@@ -299,6 +318,7 @@ def dfs(node, newClause, visited):
     newClause.addAtom(node.atom)
     for neighbor in node.neighbors:
         dfs(neighbor, newClause, visited)
+
 
 
 def main():
@@ -317,127 +337,25 @@ def main():
         cnf.addClause(Clause(q, table_dict))
     cnf1 = CNF()
     cnf1.addClause(Clause(parsed_query[0], table_dict))
-    cnf1.clauses[0].variables = []
-    res = cnf1.clauses[0].getUCNF()
 
     # print(cnf1.clauses[0].is_independent(cnf1.clauses[1]))
     # var = cnf1.clauses[0].getUCNF()
-    cnf2 = CNF()
-    # cnf2.addClause(Clause(parsed_query[1], table_dict))
+    #cnf2 = CNF()
+    #cnf1.addClause(Clause(parsed_query[1], table_dict))
 
-    # print(cnf1.is_independent(cnf2))
+    #clause1 = Clause()
+    #clause2 = Clause()
 
+    #clause1.addAtom(cnf1.clauses[0].atoms[0])
+    #clause2.addAtom(cnf1.clauses[0].atoms[1])
 
-if __name__ == "__main__":
-    main()
+    #clause1.variables = set()
+    #clause2.variables = set()
 
+    #if (clause1.is_independent(clause2)):
+    #    print("independent")
+    #print(cnf1.is_independent(cnf2))
 
-def ConverttoUCNF(cnf):
-    if (cnf.isClause()):
-        return cnf.clauses[0].getUCNF()
-    alpha = cnf.clauses[0]
-
-    gamma = CNF()
-    for i in cnf.clauses[1:]:
-        gamma.addClause(i)
-    ucnf = UCNF()
-
-    for i in alpha.getUCNF().cnfs:
-        for j in ConverttoUCNF(gamma).cnfs:
-            ucnf.add_cnf(i.mergeCNF(j))
-    return ucnf
-
-def get_val_domain(var, atom):
-    if (var == None): return []
-    for i in range(len(atom.variables)):
-        if (var in atom.variables[i]):
-            break
-    t = atom.table_dict[atom.name]
-    val_domain = list()
-    for j in t.vals:
-        val_domain.append(int(j[i]))
-    return list(set(val_domain))
-
-def grounding(var, val, cnf):
-    for clause in cnf.clauses:
-        for atom in clause.atoms:
-            for i in range(len(atom.variables)):
-                if (var in atom.variables[i]):
-                    atom.variables[i] = val
-    return
-
-
-def lifted_inference(cnf):
-    cnf.rewrite()
-    print("##################### new Recursive call")
-    # for clause in cnf.clauses:
-    #     clause.print()
-    if (cnf.isClause()):
-        clause = cnf.clauses[0]
-        if len(clause.atoms) == 1:
-            if (len(clause.variables)) == 0:
-                prob = clause.atoms[0].get_value()
-                return prob
-    ucnf = ConverttoUCNF(cnf)
-    if (len(ucnf.cnfs) == 2):
-        if (ucnf.cnfs[0].is_independent(ucnf.cnfs[1])):
-            cnf1 = ucnf.cnfs[0].deep_cooy()
-            cnf2 = ucnf.cnfs[1].deep_cooy()
-            prob1 = lifted_inference(cnf1)
-            prob2 = lifted_inference(cnf2)
-            return 1 - (1 - prob1) * (1 - prob2)
-        else:
-            cnf1 = ucnf.cnfs[0].deep_cooy()
-            cnf2 = ucnf.cnfs[1].deep_cooy()
-            cnf12 = cnf1.mergeCNF(cnf2)
-
-            return lifted_inference(cnf1) + lifted_inference(cnf2) - lifted_inference(cnf12)
-    if (len(cnf.clauses) == 2):
-        if (cnf.clauses[0].is_independent(cnf.clauses[1])):
-            cnf1 = cnf()
-            cnf2 = cnf()
-            cnf1.addClause(cnf.clauses[0])
-            cnf2.addClause(cnf.clauses[1])
-            return lifted_inference(cnf1)*lifted_inference(cnf2)
-    var = cnf.get_separator()
-    if (var == "None"):
-        return 0
-    else:
-        val_domain = get_val_domain(var, cnf.clauses[0].atoms[0])
-        prob = 1
-
-        for i in val_domain:
-            cnf1 = cnf.deep_cooy()
-            grounding(var, str(i), cnf1)
-            prob = prob * lifted_inference(cnf1)
-        return prob
-
-
-def main():
-    """
-    Read database files and parse into a table dictionary with tableName, table key/value pair
-    """
-    filenames = ['table_file_3.txt', 'table_file_1.txt', 'table_file_2.txt']
-    table_dict = {}
-    for dbfile in filenames:
-        t = parser.pdbTable('./db/' + dbfile)
-        table_dict[t.table_name] = t
-
-    parsed_query = parser.parse_query('./db/query.txt')
-    cnf = CNF()
-    for q in parsed_query:
-        cnf.addClause(Clause(q, table_dict))
-    # res = cnf.rewrite()
-    print("hello")
-    # cnf1 = CNF()
-    # cnf1.addClause(Clause(parsed_query[0], table_dict))
-    # a1 = cnf.clauses[0].atoms[0]
-    # a2 = cnf.clauses[0].atoms[1]
-    # print(a1.is_independent(a2))
-    # a = cnf1.rewrite()
-    # cnf2 = CNF()
-    # cnf2.addClause(Clause(parsed_query[1], table_dict))
-    print(1 - lifted_inference(cnf))
 
 if __name__ == "__main__":
     main()

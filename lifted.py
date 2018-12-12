@@ -8,6 +8,7 @@ from objects import Clause
 from db import SQL_DB 
 import multiprocessing
 import time
+import sys
 
 def CNFConverttoUCNF(cnf):
     if (cnf.isClause()):
@@ -266,25 +267,28 @@ def main():
     """
     Read database files and parse into a table dictionary with tableName, table key/value pair
     """
-
     argparser = argparse.ArgumentParser()
 
-    argparser.add_argument("--table", nargs=3, help="input the file name of table")
+    argparser.add_argument("--table", nargs='+', action='append', help="input the file name of table")
     argparser.add_argument("--query", help="input the file name of query")
     argparser.add_argument("-d", help="database mode", action='store_true')
     argparser.add_argument("-p", help="Apply Lifted Inference Rule in Parallel", action='store_true')
-
     args = argparser.parse_args()
     query_name = args.query
 
-    filenames = args.table
+    filenames = []
     table_dict = {}
-    # filenames = ['table_file_1.txt','table_file_2.txt','table_file_3.txt']
+
+    for table_arg in args.table:
+        if len(table_arg) != 1:
+            print("Illegal argument, table option takes exactly one file at a time")
+            sys.exit(1)
+        filenames.append(table_arg[0])
+
     for dbfile in filenames:
-        t = parser.pdbTable('./db/' + dbfile)
+        t = parser.pdbTable(dbfile)
         table_dict[t.table_name] = t
-    # query_name = 'query.txt'
-    parsed_query = parser.parse_query('./db/' + query_name)
+    parsed_query = parser.parse_query(query_name)
     db = None
     if args.d:
         db_file = 'prob.db' 
@@ -299,8 +303,9 @@ def main():
     for q in parsed_query:
         cnf.addClause(Clause(q, table_dict))
     start = time.time()
-    print(1 - lifted_inference(cnf,db, shared_mem, p_id))
+    res = 1 - lifted_inference(cnf,db, shared_mem, p_id)
     end = time.time()
-    print("####\t Total time taken is \t" + str(end - start))
+    print("####\t Total time taken is \t{0:0.2f} seconds".format(end - start))
+    print("####\t Probability is:\t{0:0.4f}".format(1 - lifted_inference(cnf,db, shared_mem, p_id)))
 if __name__ == "__main__":
     main()

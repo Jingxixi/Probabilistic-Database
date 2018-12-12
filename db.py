@@ -12,7 +12,7 @@ class SQL_DB:
     def init_db(self):
         conn = self.get_db_conn()
         for file_name in self.files:
-            with open('./db/' + file_name) as f:
+            with open(file_name) as f:
                 data = [line.rstrip() for line in f]
             table_name = data[0]
             rows = data[1:]

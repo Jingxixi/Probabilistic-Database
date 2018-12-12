@@ -58,9 +58,15 @@ class SQL_DB:
 
         sql = 'SELECT prob FROM {} WHERE {}'.format(tableName, column_name)
         print(sql)
-        for row in conn.execute(sql):
-            conn.close()
-            return float(row[0])
+        try:
+            for row in conn.execute(sql):
+                conn.close()
+                # print(float(row[0]))
+                return float(row[0])
+        except:
+            print("error!")
+            return 1
+
         return 0
 
 

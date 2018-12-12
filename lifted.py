@@ -6,12 +6,6 @@ from objects_initial import UCNF
 from objects_initial import CNF
 from objects_initial import Clause
 
-
-
-
-
-
-
 def CNFConverttoUCNF(cnf):
     if (cnf.isClause()):
         return cnf.clauses[0].getUCNF()

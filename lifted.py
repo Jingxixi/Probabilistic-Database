@@ -2,9 +2,9 @@
 # Input: ['R', ['x1']]
 import argparse
 import parser
-from objects_initial import UCNF
-from objects_initial import CNF
-from objects_initial import Clause
+from objects import UCNF
+from objects import CNF
+from objects import Clause
 
 def CNFConverttoUCNF(cnf):
     if (cnf.isClause()):

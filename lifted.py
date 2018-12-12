@@ -5,7 +5,7 @@ import parser
 from objects import UCNF
 from objects import CNF
 from objects import Clause
-from db import SQL_DB 
+from db import SQL_DB
 import multiprocessing
 import time
 import sys
@@ -93,7 +93,7 @@ def parallel_process_2(cnf1, cnf2, shared_mem, p_id, db=None):
     p1 = multiprocessing.Process(target=lifted_inference, args=(cnf1,db, shared_mem, p_id+"p1"))
     p1.start()
     p2 = multiprocessing.Process(target=lifted_inference, args=(cnf2,db, shared_mem, p_id+"p2"))
-    p2.start()   
+    p2.start()
     p1.join()
     p2.join()
     prob1 = shared_mem[p_id+"p1"]
@@ -106,7 +106,7 @@ def parallel_process_3(cnf1, cnf2, cnf3, shared_mem, p_id, db=None):
     p2 = multiprocessing.Process(target=lifted_inference, args=(cnf2, db, shared_mem, p_id+"p2"))
     p2.start()
     p3 = multiprocessing.Process(target=lifted_inference, args=(cnf3, db, shared_mem, p_id+"p3"))
-    p3.start()      
+    p3.start()
     p1.join()
     p2.join()
     p3.join()
@@ -122,13 +122,13 @@ def lifted_inference(cnf, db=None, shared_mem=None, p_id=None):
         clause = cnf.clauses[0]
         if len(clause.atoms) == 1:
             if (len(clause.variables)) == 0:
-                atom = clause.atoms[0] 
-                if db == None: 
-                    prob = atom.get_value() 
-                else: 
-                    if atom.negation: 
-                        prob = db.get_prob(atom.name, atom.variables) 
-                    else: 
+                atom = clause.atoms[0]
+                if db == None:
+                    prob = atom.get_value()
+                else:
+                    if atom.negation:
+                        prob = db.get_prob(atom.name, atom.variables)
+                    else:
                         prob = 1.0 - db.get_prob(atom.name, atom.variables)
                 if p_id != None:
                     shared_mem[p_id] = prob
@@ -159,7 +159,7 @@ def lifted_inference(cnf, db=None, shared_mem=None, p_id=None):
             else:
                 prob1 = lifted_inference(cnf1, db)
                 prob2 = lifted_inference(cnf2, db)
-                prob12 = lifted_inference(cnf12, db)                
+                prob12 = lifted_inference(cnf12, db)
                 return prob1 + prob2 - prob12
 
     if (len(ucnf.cnfs) > 2):
@@ -188,9 +188,8 @@ def lifted_inference(cnf, db=None, shared_mem=None, p_id=None):
         if (len(cnf.clauses) == 1):
             var = cnf.get_separator()
             if (var == None):
-                if p_id != None:
-                    shared_mem[p_id] = 0
-                return 0
+                print("This query is unliftable")
+                sys.exit(1)
             else:
                 val_domain = get_val_domain(var, cnf.clauses[0].atoms[0])
                 prob = 1
@@ -214,10 +213,8 @@ def lifted_inference(cnf, db=None, shared_mem=None, p_id=None):
                 return res
             var = cnf.get_separator()
             if var == None:
-                if p_id != None:
-                    shared_mem[p_id] = 0
-                    return
-                return 0
+                print("This query is unliftable")
+                sys.exit(1)
             else:
                 val_domain = get_val_domain(var, cnf.clauses[0].atoms[0])
                 prob = 1
@@ -248,9 +245,8 @@ def lifted_inference(cnf, db=None, shared_mem=None, p_id=None):
 
             var = cnf.get_separator()
             if (var == None):
-                if p_id != None:
-                    shared_mem[p_id] = 0
-                return 0
+                print("This query is unliftable")
+                sys.exit(1)
             else:
                 val_domain = get_val_domain(var, cnf.clauses[0].atoms[0])
                 prob = 1
@@ -291,8 +287,8 @@ def main():
     parsed_query = parser.parse_query(query_name)
     db = None
     if args.d:
-        db_file = 'prob.db' 
-        db = SQL_DB(filenames, db_file) 
+        db_file = 'prob.db'
+        db = SQL_DB(filenames, db_file)
     shared_mem = None
     p_id = None
     if args.p:

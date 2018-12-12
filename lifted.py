@@ -5,6 +5,7 @@ import parser
 from objects import UCNF
 from objects import CNF
 from objects import Clause
+from db import SQL_DB 
 
 def CNFConverttoUCNF(cnf):
     if (cnf.isClause()):
@@ -85,13 +86,20 @@ def cnf_independent(clause, clause_list):
             return False
     return True
 
-def lifted_inference(cnf):
+def lifted_inference(cnf, db=None):
     cnf.rewrite()
     if (cnf.isClause()):
         clause = cnf.clauses[0]
         if len(clause.atoms) == 1:
             if (len(clause.variables)) == 0:
-                prob = clause.atoms[0].get_value()
+                atom = clause.atoms[0] 
+                if db == None: 
+                    prob = atom.get_value() 
+                else: 
+                    if atom.negation: 
+                        prob = db.get_prob(atom.name, atom.variables) 
+                    else: 
+                        prob = 1.0 - db.get_prob(atom.name, atom.variables) 
                 return prob
 
     ucnf = CNFConverttoUCNF(cnf)
@@ -99,14 +107,14 @@ def lifted_inference(cnf):
         cnf1 = ucnf.cnfs[0].deep_copy()
         cnf2 = ucnf.cnfs[1].deep_copy()
         if (cnf1.is_independent(cnf2)):
-            prob1 = lifted_inference(cnf1)
-            prob2 = lifted_inference(cnf2)
+            prob1 = lifted_inference(cnf1,db)
+            prob2 = lifted_inference(cnf2,db)
             return 1 - (1 - prob1) * (1 - prob2)
         else:
-            prob1 = lifted_inference(cnf1)
-            prob2 = lifted_inference(cnf2)
+            prob1 = lifted_inference(cnf1,db)
+            prob2 = lifted_inference(cnf2,db)
             cnf12 = cnf1.mergeCNF(cnf2)
-            prob12 = lifted_inference(cnf12)
+            prob12 = lifted_inference(cnf12,db)
             return prob1 + prob2 - prob12
 
 
@@ -116,11 +124,11 @@ def lifted_inference(cnf):
         for i in ucnf.cnfs:
             ucnf1.add_cnf(i.deep_copy())
         if ucnf_independent(cnf1, ucnf1):
-            prob1 = lifted_inference(cnf1)
+            prob1 = lifted_inference(cnf1,db)
             prob2 = lifted_inference_UCNF(ucnf1)
             return 1 - (1 - prob1) * (1 - prob2)
         else:
-            prob1 = lifted_inference(cnf1)
+            prob1 = lifted_inference(cnf1,db)
             prob2 = lifted_inference_UCNF(ucnf1)
             ucnf12 = get_UCNF(cnf1, ucnf1)
             prob12 = lifted_inference_UCNF(ucnf12)
@@ -137,7 +145,7 @@ def lifted_inference(cnf):
                 for i in val_domain:
                     cnf__1 = cnf.deep_copy()
                     grounding(var, str(i), cnf__1)
-                    prob = prob * lifted_inference(cnf__1)
+                    prob = prob * lifted_inference(cnf__1,db)
                 return prob
 
         if (len(cnf.clauses) == 2):
@@ -146,7 +154,7 @@ def lifted_inference(cnf):
                 cnf_2 = CNF()
                 cnf_1.addClause(cnf.clauses[0].deep_copy())
                 cnf_2.addClause(cnf.clauses[1].deep_copy())
-                return lifted_inference(cnf_1)*lifted_inference(cnf_2)
+                return lifted_inference(cnf_1,db)*lifted_inference(cnf_2,db)
             var = cnf.get_separator()
             if (var == "None"):
                 return 0
@@ -156,7 +164,7 @@ def lifted_inference(cnf):
                 for i in val_domain:
                     cnf__1 = cnf.deep_copy()
                     grounding(var, str(i), cnf__1)
-                    prob = prob * lifted_inference(cnf__1)
+                    prob = prob * lifted_inference(cnf__1,db)
                 return prob
         else:
             for i in range(len(cnf.clauses)):
@@ -170,7 +178,7 @@ def lifted_inference(cnf):
                 cnf_0 = cnf_1.clauses[0]
                 cnf_list = cnf_2.clauses
                 if (cnf_independent(cnf_0, cnf_list)):
-                    return lifted_inference(cnf_2) * lifted_inference(cnf_1)
+                    return lifted_inference(cnf_2,db) * lifted_inference(cnf_1,db)
 
             var = cnf.get_separator()
             if (var == None):
@@ -181,7 +189,7 @@ def lifted_inference(cnf):
                 for i in val_domain:
                     cnf__1 = cnf.deep_copy()
                     grounding(var, str(i), cnf__1)
-                    prob = prob * lifted_inference(cnf__1)
+                    prob = prob * lifted_inference(cnf__1,db)
                     return prob
 
 def main():
@@ -193,6 +201,7 @@ def main():
 
     argparser.add_argument("--table", nargs=3, help="input the file name of table")
     argparser.add_argument("--query", help="input the file name of query")
+    argparser.add_argument("-d", help="database mode", action='store_true')
     args = argparser.parse_args()
     query_name = args.query
     #table_name = args.table
@@ -205,18 +214,15 @@ def main():
         table_dict[t.table_name] = t
 
     parsed_query = parser.parse_query('./db/' + query_name)
+    db = None
+    if args.d:
+        db_file = 'prob.db' 
+        db = SQL_DB(filenames, db_file) 
     cnf = CNF()
     for q in parsed_query:
         cnf.addClause(Clause(q, table_dict))
-    cnf1 = CNF()
 
-    cnf1.addClause(Clause(parsed_query[0], table_dict))
-
-    cnf2 = CNF()
-    cnf2.addClause(Clause(parsed_query[1], table_dict))
-
-
-    print(1 - lifted_inference(cnf1))
+    print(1 - lifted_inference(cnf,db))
 
 if __name__ == "__main__":
     main()

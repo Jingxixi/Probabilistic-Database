@@ -4,7 +4,8 @@ import parser
 import copy
 import multiprocessing
 import time
-
+import multiprocessing
+import time
 
 class Node:
     def __init__(self, atom):

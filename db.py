@@ -57,7 +57,7 @@ class SQL_DB:
                 column_name += "AND " + "col" + str(i) + " = " + str(column_values[i])
 
         sql = 'SELECT prob FROM {} WHERE {}'.format(tableName, column_name)
-        print(sql)
+        # print(sql)
         try:
             for row in conn.execute(sql):
                 conn.close()
@@ -68,14 +68,3 @@ class SQL_DB:
             return 1
 
         return 0
-
-
-def main():
-    filenames = ['table_file_3.txt', 'table_file_1.txt', 'table_file_2.txt']
-    db_file = 'prob.db'
-    db = SQL_DB(filenames, db_file)
-    print(db.get_prob('R', [1,2]))
-    # load_data(conn, files, db_name)
-
-if __name__ == "__main__":
-    main()

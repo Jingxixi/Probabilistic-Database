@@ -6,6 +6,8 @@ from objects import UCNF
 from objects import CNF
 from objects import Clause
 from db import SQL_DB 
+import multiprocessing
+import time
 
 def CNFConverttoUCNF(cnf):
     if (cnf.isClause()):
@@ -86,7 +88,34 @@ def cnf_independent(clause, clause_list):
             return False
     return True
 
-def lifted_inference(cnf, db=None):
+def parallel_process_2(cnf1, cnf2, shared_mem, p_id, db=None):
+    p1 = multiprocessing.Process(target=lifted_inference, args=(cnf1,db, shared_mem, p_id+"p1"))
+    p1.start()
+    p2 = multiprocessing.Process(target=lifted_inference, args=(cnf2,db, shared_mem, p_id+"p2"))
+    p2.start()   
+    p1.join()
+    p2.join()
+    prob1 = shared_mem[p_id+"p1"]
+    prob2 = shared_mem[p_id+"p2"]
+    return prob1, prob2
+
+def parallel_process_3(cnf1, cnf2, cnf3, shared_mem, p_id, db=None):
+    p1 = multiprocessing.Process(target=lifted_inference, args=(cnf1, db, shared_mem, p_id+"p1"))
+    p1.start()
+    p2 = multiprocessing.Process(target=lifted_inference, args=(cnf2, db, shared_mem, p_id+"p2"))
+    p2.start()
+    p3 = multiprocessing.Process(target=lifted_inference, args=(cnf3, db, shared_mem, p_id+"p3"))
+    p3.start()      
+    p1.join()
+    p2.join()
+    p3.join()
+    prob1 = shared_mem[p_id+"p1"]
+    prob2 = shared_mem[p_id+"p2"]
+    prob3 = shared_mem[p_id+"p3"]
+    return prob1, prob2, prob3
+
+
+def lifted_inference(cnf, db=None, shared_mem=None, p_id=None):
     cnf.rewrite()
     if (cnf.isClause()):
         clause = cnf.clauses[0]
@@ -99,7 +128,9 @@ def lifted_inference(cnf, db=None):
                     if atom.negation: 
                         prob = db.get_prob(atom.name, atom.variables) 
                     else: 
-                        prob = 1.0 - db.get_prob(atom.name, atom.variables) 
+                        prob = 1.0 - db.get_prob(atom.name, atom.variables)
+                if p_id != None:
+                    shared_mem[p_id] = prob
                 return prob
 
     ucnf = CNFConverttoUCNF(cnf)
@@ -107,16 +138,28 @@ def lifted_inference(cnf, db=None):
         cnf1 = ucnf.cnfs[0].deep_copy()
         cnf2 = ucnf.cnfs[1].deep_copy()
         if (cnf1.is_independent(cnf2)):
-            prob1 = lifted_inference(cnf1,db)
-            prob2 = lifted_inference(cnf2,db)
-            return 1 - (1 - prob1) * (1 - prob2)
+            if p_id != None:
+                prob1, prob2 = parallel_process_2(cnf1,cnf2, shared_mem, p_id, db)
+                res = 1 - (1 - prob1) * (1 - prob2)
+                shared_mem[p_id] = res
+                return res
+            else:
+                prob1 = lifted_inference(cnf1, db)
+                prob2 = lifted_inference(cnf2, db)
+                res = 1 - (1 - prob1) * (1 - prob2)
+                return res
         else:
-            prob1 = lifted_inference(cnf1,db)
-            prob2 = lifted_inference(cnf2,db)
             cnf12 = cnf1.mergeCNF(cnf2)
-            prob12 = lifted_inference(cnf12,db)
-            return prob1 + prob2 - prob12
-
+            if p_id != None:
+                prob1, prob2, prob12 = parallel_process_3(cnf1, cnf2, cnf12, shared_mem, p_id, db)
+                res = prob1 + prob2 - prob12
+                shared_mem[p_id] = res
+                return res
+            else:
+                prob1 = lifted_inference(cnf1, db)
+                prob2 = lifted_inference(cnf2, db)
+                prob12 = lifted_inference(cnf12, db)                
+                return prob1 + prob2 - prob12
 
     if (len(ucnf.cnfs) > 2):
         cnf1 = ucnf.cnfs[0].deep_copy()
@@ -126,18 +169,26 @@ def lifted_inference(cnf, db=None):
         if ucnf_independent(cnf1, ucnf1):
             prob1 = lifted_inference(cnf1,db)
             prob2 = lifted_inference_UCNF(ucnf1)
-            return 1 - (1 - prob1) * (1 - prob2)
+            res = 1 - (1 - prob1) * (1 - prob2)
+            if p_id != None:
+                shared_mem[p_id] = res
+            return res
         else:
             prob1 = lifted_inference(cnf1,db)
             prob2 = lifted_inference_UCNF(ucnf1)
             ucnf12 = get_UCNF(cnf1, ucnf1)
             prob12 = lifted_inference_UCNF(ucnf12)
-            return prob1 + prob2 - prob12
+            res = prob1 + prob2 - prob12
+            if p_id != None:
+                shared_mem[p_id] = res
+            return res
 
     if (len(ucnf.cnfs) == 1):
         if (len(cnf.clauses) == 1):
             var = cnf.get_separator()
             if (var == None):
+                if p_id != None:
+                    shared_mem[p_id] = 0
                 return 0
             else:
                 val_domain = get_val_domain(var, cnf.clauses[0].atoms[0])
@@ -146,6 +197,8 @@ def lifted_inference(cnf, db=None):
                     cnf__1 = cnf.deep_copy()
                     grounding(var, str(i), cnf__1)
                     prob = prob * lifted_inference(cnf__1,db)
+                if p_id != None:
+                    shared_mem[p_id] = prob
                 return prob
 
         if (len(cnf.clauses) == 2):
@@ -154,9 +207,15 @@ def lifted_inference(cnf, db=None):
                 cnf_2 = CNF()
                 cnf_1.addClause(cnf.clauses[0].deep_copy())
                 cnf_2.addClause(cnf.clauses[1].deep_copy())
-                return lifted_inference(cnf_1,db)*lifted_inference(cnf_2,db)
+                res = lifted_inference(cnf_1,db)*lifted_inference(cnf_2,db)
+                if p_id != None:
+                    shared_mem[p_id] = res
+                return res
             var = cnf.get_separator()
-            if (var == "None"):
+            if var == None:
+                if p_id != None:
+                    shared_mem[p_id] = 0
+                    return
                 return 0
             else:
                 val_domain = get_val_domain(var, cnf.clauses[0].atoms[0])
@@ -165,6 +224,9 @@ def lifted_inference(cnf, db=None):
                     cnf__1 = cnf.deep_copy()
                     grounding(var, str(i), cnf__1)
                     prob = prob * lifted_inference(cnf__1,db)
+
+                if p_id != None:
+                    shared_mem[p_id] = prob
                 return prob
         else:
             for i in range(len(cnf.clauses)):
@@ -178,10 +240,15 @@ def lifted_inference(cnf, db=None):
                 cnf_0 = cnf_1.clauses[0]
                 cnf_list = cnf_2.clauses
                 if (cnf_independent(cnf_0, cnf_list)):
-                    return lifted_inference(cnf_2,db) * lifted_inference(cnf_1,db)
+                    res = lifted_inference(cnf_2,db) * lifted_inference(cnf_1,db)
+                    if p_id != None:
+                        shared_mem[p_id] = res
+                    return res
 
             var = cnf.get_separator()
             if (var == None):
+                if p_id != None:
+                    shared_mem[p_id] = 0
                 return 0
             else:
                 val_domain = get_val_domain(var, cnf.clauses[0].atoms[0])
@@ -190,7 +257,10 @@ def lifted_inference(cnf, db=None):
                     cnf__1 = cnf.deep_copy()
                     grounding(var, str(i), cnf__1)
                     prob = prob * lifted_inference(cnf__1,db)
-                    return prob
+                if p_id != None:
+                    shared_mem[p_id] = prob
+                return prob
+
 
 def main():
     """
@@ -202,27 +272,35 @@ def main():
     argparser.add_argument("--table", nargs=3, help="input the file name of table")
     argparser.add_argument("--query", help="input the file name of query")
     argparser.add_argument("-d", help="database mode", action='store_true')
+    argparser.add_argument("-p", help="Apply Lifted Inference Rule in Parallel", action='store_true')
+
     args = argparser.parse_args()
     query_name = args.query
-    #table_name = args.table
-
 
     filenames = args.table
     table_dict = {}
+    # filenames = ['table_file_1.txt','table_file_2.txt','table_file_3.txt']
     for dbfile in filenames:
         t = parser.pdbTable('./db/' + dbfile)
         table_dict[t.table_name] = t
-
+    # query_name = 'query.txt'
     parsed_query = parser.parse_query('./db/' + query_name)
     db = None
     if args.d:
         db_file = 'prob.db' 
         db = SQL_DB(filenames, db_file) 
+    shared_mem = None
+    p_id = None
+    if args.p:
+        manager = multiprocessing.Manager()
+        shared_mem = manager.dict()
+        p_id = "start"
     cnf = CNF()
     for q in parsed_query:
         cnf.addClause(Clause(q, table_dict))
-
-    print(1 - lifted_inference(cnf,db))
-
+    start = time.time()
+    print(1 - lifted_inference(cnf,db, shared_mem, p_id))
+    end = time.time()
+    print("####\t Total time taken is \t" + str(end - start))
 if __name__ == "__main__":
     main()

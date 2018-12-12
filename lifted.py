@@ -6,20 +6,27 @@ from objects_initial import UCNF
 from objects_initial import CNF
 from objects_initial import Clause
 
-def ConverttoUCNF(cnf):
+
+
+
+
+
+
+def CNFConverttoUCNF(cnf):
     if (cnf.isClause()):
         return cnf.clauses[0].getUCNF()
-    alpha = cnf.clauses[0]#.deep_copy()
+    alpha = cnf.clauses[0]
 
     gamma = CNF()
     for i in cnf.clauses[1:]:
-        gamma.addClause(i)#.deep_copy())
+        gamma.addClause(i)
     ucnf = UCNF()
 
     for i in alpha.getUCNF().cnfs:
-        for j in ConverttoUCNF(gamma).cnfs:
+        for j in CNFConverttoUCNF(gamma).cnfs:
             ucnf.add_cnf(i.mergeCNF(j))
     return ucnf
+
 
 def get_val_domain(var, atom):
     if (var == None): return []
@@ -32,6 +39,7 @@ def get_val_domain(var, atom):
         val_domain.append(int(j[i]))
     return list(set(val_domain))
 
+
 def grounding(var, val, cnf):
     for clause in cnf.clauses:
         for atom in clause.atoms:
@@ -39,6 +47,43 @@ def grounding(var, val, cnf):
                 if (var in atom.variables[i]):
                     atom.variables[i] = val
     return
+
+
+def ucnf_independent(cnf, ucnf):
+    for i in ucnf.cnfs:
+        if cnf.is_independent(i):
+            continue
+        else:
+            return False
+    return True
+
+
+def lifted_inference_UCNF(ucnf):
+    if (len(ucnf.cnfs) == 1):
+        cnf = ucnf.cnfs[0].deep_copy()
+        return lifted_inference(cnf)
+    else:
+        cnf1 = ucnf.cnfs[0].deep_copy()
+        ucnf1 = UCNF()
+        for i in ucnf.cnfs[1:]:
+            ucnf1.add_cnf(i.deep_copy())
+        if (ucnf_independent(cnf1, ucnf1)):
+            prob1 = lifted_inference(cnf1)
+            prob2 = lifted_inference_UCNF(ucnf1)
+            return 1 - (1 - prob1)(1 - prob2)
+        else:
+            prob1 = lifted_inference(cnf1)
+            prob2 = lifted_inference_UCNF(ucnf1)
+            ucnf12 = get_UCNF(cnf1, ucnf1)
+            prob12 = lifted_inference_UCNF(ucnf12)
+            return prob1 + prob2 - prob12
+
+
+def get_UCNF(initial_cnf, initial_ucnf):
+    ucnf = UCNF()
+    for i in initial_ucnf.cnfs:
+        ucnf.add_cnf(initial_cnf.mergeCNF(i.deep_copy()))
+    return ucnf
 
 def cnf_independent(clause, clause_list):
     for i in clause_list:
@@ -55,78 +100,38 @@ def lifted_inference(cnf):
                 prob = clause.atoms[0].get_value()
                 return prob
 
-    ucnf = ConverttoUCNF(cnf)
+    ucnf = CNFConverttoUCNF(cnf)
     if (len(ucnf.cnfs) == 2):
-        if (ucnf.cnfs[0].is_independent(ucnf.cnfs[1])):
-            cnf1 = ucnf.cnfs[0].deep_copy()
-            cnf2 = ucnf.cnfs[1].deep_copy()
+        cnf1 = ucnf.cnfs[0].deep_copy()
+        cnf2 = ucnf.cnfs[1].deep_copy()
+        if (cnf1.is_independent(cnf2)):
             prob1 = lifted_inference(cnf1)
             prob2 = lifted_inference(cnf2)
             return 1 - (1 - prob1) * (1 - prob2)
         else:
-            cnf1 = ucnf.cnfs[0].deep_copy()
-            cnf2 = ucnf.cnfs[1].deep_copy()
-            cnf12 = cnf1.mergeCNF(cnf2)
-            prob12 = lifted_inference(cnf12)
             prob1 = lifted_inference(cnf1)
             prob2 = lifted_inference(cnf2)
-
+            cnf12 = cnf1.mergeCNF(cnf2)
+            prob12 = lifted_inference(cnf12)
             return prob1 + prob2 - prob12
 
-    if (len(ucnf.cnfs) == 3):
-        cnf1 = ucnf.cnfs[0].deep_copy()
-        cnf2 = ucnf.cnfs[1].deep_copy()
-        cnf3 = ucnf.cnfs[2].deep_copy()
-        cnf12 = cnf1.mergeCNF(cnf2)
-        cnf13 = cnf1.mergeCNF(cnf3)
-        cnf23 = cnf2.mergeCNF(cnf3)
 
-        cnf123 = (cnf12.deep_copy()).mergeCNF(cnf3.deep_copy())
-        prob1 = lifted_inference(cnf1)
-        prob2 = lifted_inference(cnf2)
-        prob3 = lifted_inference(cnf3)
-        prob12 = lifted_inference(cnf12)
-        prob13 = lifted_inference(cnf13)
-        prob23 = lifted_inference(cnf23)
-        prob123 = lifted_inference(cnf123)
-        return prob1 + prob2 + prob3 - prob12 - prob13 - prob23 + prob123
-
-    if (len(ucnf.cnfs) == 4):
+    if (len(ucnf.cnfs) > 2):
         cnf1 = ucnf.cnfs[0].deep_copy()
-        cnf2 = ucnf.cnfs[1].deep_copy()
-        cnf3 = ucnf.cnfs[2].deep_copy()
-        cnf4 = ucnf.cnfs[3].deep_copy()
-        cnf12 = cnf1.mergeCNF(cnf2)
-        cnf13 = cnf1.mergeCNF(cnf3)
-        cnf14 = cnf1.mergeCNF(cnf4)
-        cnf23 = cnf2.mergeCNF(cnf3)
-        cnf24 = cnf2.mergeCNF(cnf4)
-        cnf34 = cnf3.mergeCNF(cnf4)
-        cnf123 = cnf12.mergeCNF(cnf3)
-        cnf124 = cnf12.mergeCNF(cnf4)
-        cnf134 = cnf13.mergeCNF(cnf4)
-        cnf234 = cnf23.mergeCNF(cnf4)
-        cnf1234 = cnf123.mergeCNF(cnf4)
-        prob1234 = lifted_inference(cnf1234)
-        prob1 = lifted_inference(cnf1)
-        prob2 = lifted_inference(cnf2)
-        prob3 = lifted_inference(cnf3)
-        prob4 = lifted_inference(cnf4)
-        prob12 = lifted_inference(cnf12)
-        prob13 = lifted_inference(cnf13)
-        prob14 = lifted_inference(cnf14)
-        prob23 = lifted_inference(cnf23)
-        prob24 = lifted_inference(cnf24)
-        prob34 = lifted_inference(cnf34)
-        prob123 = lifted_inference(cnf123)
-        prob124 = lifted_inference(cnf124)
-        prob134 = lifted_inference(cnf134)
-        prob234 = lifted_inference(cnf234)
-        prob_1 = prob1 + prob2 + prob3 + prob4
-        prob_2 = prob12 + prob13 + prob14 + prob23 + prob24 + prob34
-        prob_3 = prob123 + prob124 + prob134 + prob234
-        prob_4 = prob1234
-        return prob_1 - prob_2 + prob_3 - prob_4
+        ucnf1 = UCNF()
+        for i in ucnf.cnfs:
+            ucnf1.add_cnf(i.deep_copy())
+        if ucnf_independent(cnf1, ucnf1):
+            prob1 = lifted_inference(cnf1)
+            prob2 = lifted_inference_UCNF(ucnf1)
+            return 1 - (1 - prob1) * (1 - prob2)
+        else:
+            prob1 = lifted_inference(cnf1)
+            prob2 = lifted_inference_UCNF(ucnf1)
+            ucnf12 = get_UCNF(cnf1, ucnf1)
+            prob12 = lifted_inference_UCNF(ucnf12)
+            return prob1 + prob2 - prob12
+
     if (len(ucnf.cnfs) == 1):
         if (len(cnf.clauses) == 1):
             var = cnf.get_separator()
@@ -145,8 +150,8 @@ def lifted_inference(cnf):
             if (cnf.clauses[0].is_independent(cnf.clauses[1])):
                 cnf_1 = CNF()
                 cnf_2 = CNF()
-                cnf_1.addClause(cnf.clauses[0])#.deep_copy())
-                cnf_2.addClause(cnf.clauses[1])#.deep_copy())
+                cnf_1.addClause(cnf.clauses[0].deep_copy())
+                cnf_2.addClause(cnf.clauses[1].deep_copy())
                 return lifted_inference(cnf_1)*lifted_inference(cnf_2)
             var = cnf.get_separator()
             if (var == "None"):
@@ -163,14 +168,16 @@ def lifted_inference(cnf):
             for i in range(len(cnf.clauses)):
                 cnf_1 = CNF()
                 cnf_2 = CNF()
+
                 cnf.clauses[0], cnf.clauses[i] = cnf.clauses[i], cnf.clauses[0]
-                cnf_1.addClause(cnf.clauses[0])#.deep_copy())
+                cnf_1.addClause(cnf.clauses[0].deep_copy())
                 for i in cnf.clauses[1:]:
-                    cnf_2.addClause(i)#.deep_copy())
+                    cnf_2.addClause(i.deep_copy())
                 cnf_0 = cnf_1.clauses[0]
                 cnf_list = cnf_2.clauses
                 if (cnf_independent(cnf_0, cnf_list)):
                     return lifted_inference(cnf_2) * lifted_inference(cnf_1)
+
             var = cnf.get_separator()
             if (var == None):
                 return 0
@@ -182,8 +189,6 @@ def lifted_inference(cnf):
                     grounding(var, str(i), cnf__1)
                     prob = prob * lifted_inference(cnf__1)
                     return prob
-
-
 
 def main():
     """

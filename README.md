@@ -9,6 +9,15 @@
 
 ## Instructions
 
+### Prerequisites
+To start, run
+    
+    ./install.sh
+
+This will install pip3 using get-pip.py. Then, it will install the required python packages user pip3
+
+### Commandline Arguments
+
 Our main class is inside [lifted.py](https://github.com/Jingxixi/Probabilistic-Database/blob/master/lifted.py)
 
 We have four arguments in our program in order to run lifted.py

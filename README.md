@@ -21,7 +21,7 @@ To start, run
     
     ./install.sh
 
-This will download python3.6.3 and build on ./py36 and then install pandas and numpy using pip3
+This will download python3.6.3 and build on $HOME/py36 and then install pandas and numpy using pip3
 
 ### Commandline Arguments
 
@@ -52,7 +52,7 @@ Another two are optional arugments
 
 In this repository, you can run the program under project top directory with:
 
-    ./py36/bin/python3 lifted.py --query files/query.txt \
+    $HOME/py36/bin/python3 lifted.py --query files/query.txt \
     --table files/table_file_1.txt \
     --table files/table_file_2.txt \
     --table files/table_file_3.txt 

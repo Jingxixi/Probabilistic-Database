@@ -9,7 +9,7 @@
 
 ## Instructions
 
-Our project is only compatible with python3.6+. It will not work with the default python version (3.4.3) on linux machines and many queries will not be liftable on python 3.4. So the next section will install a python 3.6 first and then use that version of python
+Our project is only compatible with python3.6+. It will not work with the default python version (3.4.3) on linux machines and many queries will not be liftable on python 3.4. So the script will install a python 3.6 first and then use that version of python
 
 ### Prerequisites
 
@@ -21,7 +21,7 @@ To start, run
     
     ./install.sh
 
-This will download python3.6.3 and build into your ~/project directory and then install pandas and numpy using pip3
+This will download python3.6.3 and build on ./py36 and then install pandas and numpy using pip3
 
 ### Commandline Arguments
 
@@ -50,9 +50,9 @@ Another two are optional arugments
 
 ### Example 
 
-In this repository, you can run the program with:
+In this repository, you can run the program under project top directory with:
 
-    ~/project/bin/python3 lifted.py --query files/query.txt \
+    ./py36/bin/python3 lifted.py --query files/query.txt \
     --table files/table_file_1.txt \
     --table files/table_file_2.txt \
     --table files/table_file_3.txt 

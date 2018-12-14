@@ -5,6 +5,7 @@ class SQL_DB:
     def __init__( self , files, db_file = "prob.db"):
         self.db_file = db_file
         self.files = files
+        self.cache = dict()
         if os.path.exists(db_file):
             os.remove(db_file)
         self.init_db()
@@ -48,6 +49,12 @@ class SQL_DB:
         conn.executemany('INSERT INTO {} VALUES ({})'.format(tableName, values), insert_data)
 
     def get_prob(self, tableName, column_values):
+        key = ''
+        for val in column_values:
+            key += str(val) + '/'
+        key += tableName
+        if  key in self.cache:
+            return self.cache[key]
         conn = self.get_db_conn()
         column_name = ""
         for i in range(len(column_values)):
@@ -62,7 +69,9 @@ class SQL_DB:
             for row in conn.execute(sql):
                 conn.close()
                 # print(float(row[0]))
-                return float(row[0])
+                res = float(row[0])
+                self.cache[key] = res
+                return res 
         except:
             print("error!")
             return 1

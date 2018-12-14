@@ -21,7 +21,7 @@ To start, run
     
     ./install.sh
 
-This will download python3.6.3 and build on $HOME/py36 and then install pandas and numpy using pip3
+This will download python 3.6.3 and build on $HOME/py36 and then install pandas and numpy using pip3. It takes about 10 minutes or so to install everything. Thank you!
 
 ### Commandline Arguments
 
